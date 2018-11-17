@@ -19,8 +19,7 @@ typedef struct {
 void input(void);
 void statement(void);
 void expression(void);
-void add_exp(void);
-void multi_exp(void);
+void term(int n);
 void factor(void);
 Token nextTkn(void);
 Token lookTkn(void);
@@ -29,6 +28,7 @@ void operate(Kind op);
 void push(int n);
 int pop(void);
 void chkTkn(Kind kd);
+int opOrder(Kind kd);
 
 #define STK_SIZ 20
 int stack[STK_SIZ + 1];
@@ -94,33 +94,55 @@ void expression() {
     expression();
     var[vNbr] = stack[stkct];
   } else {
-    add_exp();
+    term(2);
   }
 }
 
-/* +, - */
-void add_exp(void) {
-  Kind op;
-  multi_exp();
-  while (token.kind == Plus || token.kind == Minus) {
-    op = token.kind;
-    token = nextTkn();
-    multi_exp();
-    operate(op);
-  }
-}
 
-/* * / */
-void multi_exp(void) {
+// n: priority
+void term(int n) {
   Kind op;
 
-  factor();
-  while (token.kind == Multi || token.kind == Divi) {
-    op = token.kind;
-    token = nextTkn();
+  if (n == 8) {
     factor();
+    return;
+  }
+  term(n + 1);
+  while (n == opOrder(token.kind)) {
+    op = token.kind;
+    token = nextTkn();
+    term(n + 1);
     operate(op);
   }
+}
+
+// priority of 2-term operators
+int opOrder(Kind kd) {
+  switch(kd) {
+  case Multi:
+  case Divi:
+  // case Mod:
+    return 7;
+  case Plus:
+  case Minus:
+    return 6;
+  /* case Less: */
+  /* case LessEq: */
+  /* case Great: */
+  /* case GreatEq: */
+  /*   return 5; */
+  /* case Equal: */
+  /* case NotEq: */
+  /*   return 4; */
+  /* case And: */
+  /* case Or: */
+  /*   return 2; */
+  case Assign:
+    return 1;
+  default:
+    return 0;
+  }
+    
 }
 
 void factor(void) {
