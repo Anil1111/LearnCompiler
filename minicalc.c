@@ -19,9 +19,11 @@ typedef struct {
 void input(void);
 void statement(void);
 void expression(void);
-void term(void);
+void add_exp(void);
+void multi_exp(void);
 void factor(void);
 Token nextTkn(void);
+Token lookTkn(void);
 int nextCh(void);
 void operate(Kind op);
 void push(int n);
@@ -62,19 +64,10 @@ void input(void) {
 }
 
 void statement(void) {
-  int vNbr;
-
   switch (token.kind) {
   case VarName:
-    vNbr = token.val;
-    token = nextTkn();
-    chkTkn(Assign);
-    if (errF) {
-      break;
-    }
-    token = nextTkn();
     expression();
-    var[vNbr] = pop();
+    (void) pop();
     break;
   case Print:
     token = nextTkn();
@@ -92,18 +85,33 @@ void statement(void) {
 }
 
 void expression() {
-  Kind op;
+  int vNbr = 0;
+  
+  if (token.kind == VarName && lookTkn().kind == Assign) {
+    vNbr = token.val;
+    token = nextTkn();
+    token = nextTkn(); // read twice
+    expression();
+    var[vNbr] = stack[stkct];
+  } else {
+    add_exp();
+  }
+}
 
-  term();
+/* +, - */
+void add_exp(void) {
+  Kind op;
+  multi_exp();
   while (token.kind == Plus || token.kind == Minus) {
     op = token.kind;
     token = nextTkn();
-    term();
+    multi_exp();
     operate(op);
   }
 }
 
-void term(void) {
+/* * / */
+void multi_exp(void) {
   Kind op;
 
   factor();
@@ -183,6 +191,15 @@ Token nextTkn(void) {
     }
     ch = nextCh();
   }
+  return tk;
+}
+
+Token lookTkn(void) {
+  char *bufp_back = bufp;
+  int ch_bak = ch;
+  Token tk = nextTkn();
+  bufp = bufp_back;
+  ch = ch_bak;
   return tk;
 }
 
